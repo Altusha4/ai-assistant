@@ -1,79 +1,142 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>AI Study Assistant</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Course Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        .level-card:hover { transform: translateY(-2px); transition: all 0.2s; }
+        .loader { border-top-color: #4f46e5; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
-<body>
+<body class="bg-gray-50 min-h-screen">
 
-<div class="container">
-    <h1>AI Course Companion</h1>
+<div id="root"></div>
 
-    <form id="uploadForm">
-        <input type="file" id="fileInput" required />
-        <button type="submit">Analyze Course</button>
-    </form>
+<script type="text/babel">
+    const { useState } = React;
 
-    <div id="loading" class="hidden">Analyzing...</div>
-
-    <div id="result"></div>
-</div>
-
-<script>
-    document.getElementById("uploadForm").addEventListener("submit", async function(e) {
-        e.preventDefault();
-
-        const fileInput = document.getElementById("fileInput");
-        const resultDiv = document.getElementById("result");
-        const loading = document.getElementById("loading");
-
-        const formData = new FormData();
-        formData.append("file", fileInput.files[0]);
-
-        loading.classList.remove("hidden");
-        resultDiv.innerHTML = "";
-
-        try {
-            const response = await fetch("/upload", {
-                method: "POST",
-                body: formData
-            });
-
-            const data = await response.json();
-            loading.classList.add("hidden");
-
-            if (data.analysis && data.analysis.levels) {
-                renderRoadmap(data.analysis.levels);
-            } else {
-                resultDiv.innerHTML = `<p style="color:red">Ошибка: ${data.error || 'Не удалось разобрать данные'}</p>`;
-            }
-        } catch (err) {
-            loading.classList.add("hidden");
-            resultDiv.innerHTML = `<p style="color:red">Ошибка сервера: ${err.message}</p>`;
-        }
-    });
-
-    function renderRoadmap(levels) {
-        const resultDiv = document.getElementById("result");
-        resultDiv.innerHTML = `<h2>🚀 Ваш персональный план обучения</h2>`;
-
-        levels.forEach((level, index) => {
-            const levelCard = document.createElement("div");
-            levelCard.className = "level-card";
-
-            levelCard.innerHTML = `
-            <div class="level-header">
-                <span class="level-number">${index + 1}</span>
-                <h3>${level.title}</h3>
+    const LevelCard = ({ level, index }) => (
+        <div className="level-card bg-white border-l-4 border-indigo-600 mb-6 p-6 rounded-xl shadow-sm">
+            <div className="flex items-center gap-4 mb-3">
+                <div className="bg-indigo-600 text-white w-8 h-8 flex items-center justify-center rounded-full font-bold text-sm">
+                    {index + 1}
+                </div>
+                <h3 className="text-xl font-bold text-gray-800">{level.title}</h3>
             </div>
-            <p class="level-description">${level.description}</p>
-            <ul class="topic-list">
-                ${level.topics.map(topic => `<li><input type="checkbox"> ${topic}</li>`).join('')}
+            <p className="text-gray-600 text-sm mb-4 ml-12">{level.description}</p>
+            <ul className="space-y-2 ml-12">
+                {level.topics.map((topic, i) => (
+                    <li key={i} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition">
+                        <input
+                            type="checkbox"
+                            className="w-5 h-5 accent-indigo-600 cursor-pointer"
+                            id={`t-${index}-${i}`}
+                        />
+                        <label htmlFor={`t-${index}-${i}`} className="text-gray-700 cursor-pointer">{topic}</label>
+                    </li>
+                ))}
             </ul>
-        `;
-            resultDiv.appendChild(levelCard);
-        });
-    }
+        </div>
+    );
+
+    const App = () => {
+        const [file, setFile] = useState(null);
+        const [loading, setLoading] = useState(false);
+        const [roadmap, setRoadmap] = useState(null);
+        const [error, setError] = useState(null);
+
+        const handleSubmit = async (e) => {
+            e.preventDefault();
+            if (!file) return;
+
+            setLoading(true);
+            setError(null);
+            setRoadmap(null);
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                const response = await fetch("/upload", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.analysis && data.analysis.levels) {
+                    setRoadmap(data.analysis.levels);
+                } else {
+                    setError(data.error || "Failed to generate roadmap.");
+                }
+            } catch (err) {
+                setError("Server error. Please try again later.");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        return (
+            <div className="max-w-3xl mx-auto py-12 px-4">
+                <header className="text-center mb-10">
+                    <h1 className="text-4xl font-extrabold text-gray-900 mb-2">AI Course Companion</h1>
+                    <p className="text-gray-500 text-lg">Upload your materials to generate a structured roadmap</p>
+                </header>
+
+                <div className="bg-white p-8 rounded-2xl shadow-md mb-8">
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition">
+                            <input
+                                type="file"
+                                onChange={(e) => setFile(e.target.files[0])}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                                required
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className={`w-full py-3 px-6 rounded-lg font-bold text-white transition ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200'}`}
+                        >
+                            {loading ? "Analyzing..." : "Generate Learning Path"}
+                        </button>
+                    </form>
+                </div>
+
+                {loading && (
+                    <div className="flex flex-col items-center justify-center py-12">
+                        <div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
+                        <p className="text-indigo-600 font-medium italic">AI is processing your materials...</p>
+                    </div>
+                )}
+
+                {error && (
+                    <div className="bg-red-50 text-red-600 p-4 rounded-lg border border-red-200 mb-6">
+                        {error}
+                    </div>
+                )}
+
+                {roadmap && (
+                    <div className="animate-fade-in">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                            <span>🚀</span> Your Personal Roadmap
+                        </h2>
+                        {roadmap.map((level, index) => (
+                            <LevelCard key={index} level={level} index={index} />
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
 </script>
 
 </body>
