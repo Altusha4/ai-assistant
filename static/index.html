@@ -33,20 +33,47 @@
         loading.classList.remove("hidden");
         resultDiv.innerHTML = "";
 
-        const response = await fetch("/upload", {
-            method: "POST",
-            body: formData
-        });
+        try {
+            const response = await fetch("/upload", {
+                method: "POST",
+                body: formData
+            });
 
-        const data = await response.json();
+            const data = await response.json();
+            loading.classList.add("hidden");
 
-        loading.classList.add("hidden");
-
-        resultDiv.innerHTML = `
-        <h2>AI Analysis</h2>
-        <pre>${data.analysis}</pre>
-    `;
+            if (data.analysis && data.analysis.levels) {
+                renderRoadmap(data.analysis.levels);
+            } else {
+                resultDiv.innerHTML = `<p style="color:red">Ошибка: ${data.error || 'Не удалось разобрать данные'}</p>`;
+            }
+        } catch (err) {
+            loading.classList.add("hidden");
+            resultDiv.innerHTML = `<p style="color:red">Ошибка сервера: ${err.message}</p>`;
+        }
     });
+
+    function renderRoadmap(levels) {
+        const resultDiv = document.getElementById("result");
+        resultDiv.innerHTML = `<h2>🚀 Ваш персональный план обучения</h2>`;
+
+        levels.forEach((level, index) => {
+            const levelCard = document.createElement("div");
+            levelCard.className = "level-card";
+
+            levelCard.innerHTML = `
+            <div class="level-header">
+                <span class="level-number">${index + 1}</span>
+                <h3>${level.title}</h3>
+            </div>
+            <p class="level-description">${level.description}</p>
+            <ul class="topic-list">
+                ${level.topics.map(topic => `<li><input type="checkbox"> ${topic}</li>`).join('')}
+            </ul>
+        `;
+            resultDiv.appendChild(levelCard);
+        });
+    }
 </script>
 
 </body>

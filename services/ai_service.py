@@ -1,39 +1,66 @@
+# #######################################
+# Imports
+# #######################################
+
 import os
+import json
 from dotenv import load_dotenv
 from openai import OpenAI
 
+
+# #######################################
+# Initialization
+# #######################################
+
 load_dotenv()
-
-api_key = os.getenv("OPENAI_API_KEY")
-
-if not api_key:
-    raise ValueError("OPENAI_API_KEY not found in environment variables")
-
-client = OpenAI(api_key=api_key)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-def generate_summary(text: str) -> str:
+# #######################################
+# Core Functions
+# #######################################
+
+
+def generate_summary(text: str):
+    # ##############################
+    # Prompt Construction
+    # ##############################
+
     prompt = f"""
-    Ты — академический помощник.
-    Составь структурированный конспект по следующему материалу.
+You are an AI academic planner. 
+Analyze the provided material and create a 4-6 level learning roadmap.
+Follow the material's logic strictly.
 
-    Материал:
-    {text}
+Material:
+{text}"""
 
-    Требования:
-    - Чёткая структура
-    - Заголовки
-    - Краткие пункты
-    - Без воды
-    """
+    # ##############################
+    # OpenAI API Call
+    # ##############################
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",  # быстрая и экономичная модель
+        model="gpt-4o-mini",
+        response_format={ "type": "json_object" },
         messages=[
-            {"role": "system", "content": "Ты профессиональный академический помощник."},
+            {
+                "role": "system",
+                "content": "You are a helpful assistant designed to output JSON. Structure: {\"levels\": [{\"title\": \"\", \"description\": \"\", \"topics\": []}]}"
+            },
             {"role": "user", "content": prompt}
         ],
-        temperature=0.4
+        temperature=0.2
     )
 
-    return response.choices[0].message.content
+    # ##############################
+    # Response Parsing
+    # ##############################
+
+    raw_content = response.choices[0].message.content
+
+    if raw_content is None:
+        return {"error": "No content received from AI"}
+
+    try:
+        return json.loads(raw_content)
+    except json.JSONDecodeError:
+        return {"error": "Invalid AI response"}
