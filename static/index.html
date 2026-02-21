@@ -1,10 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <title>AI Study Assistant</title>
+    <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-$END$
+
+<div class="container">
+    <h1>AI Course Companion</h1>
+
+    <form id="uploadForm">
+        <input type="file" id="fileInput" required />
+        <button type="submit">Analyze Course</button>
+    </form>
+
+    <div id="loading" class="hidden">Analyzing...</div>
+
+    <div id="result"></div>
+</div>
+
+<script>
+    document.getElementById("uploadForm").addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        const fileInput = document.getElementById("fileInput");
+        const resultDiv = document.getElementById("result");
+        const loading = document.getElementById("loading");
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        loading.classList.remove("hidden");
+        resultDiv.innerHTML = "";
+
+        const response = await fetch("/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        loading.classList.add("hidden");
+
+        resultDiv.innerHTML = `
+        <h2>AI Analysis</h2>
+        <pre>${data.analysis}</pre>
+    `;
+    });
+</script>
+
 </body>
 </html>
