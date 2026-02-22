@@ -22,6 +22,7 @@
       background: radial-gradient(circle at 50% 50%, #f8fafc 0%, #e2e8f0 100%);
       color: #0f172a;
       transition: background 0.5s ease;
+      min-height: 100vh;
     }
 
     .glass {
@@ -31,7 +32,7 @@
       border: 1px solid rgba(255, 255, 255, 0.4);
     }
 
-    /* Sidebar Transitions */
+    /* Sidebar Animation */
     #sidebar {
       transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -66,6 +67,8 @@
     .bento-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); }
 
     .topic-checked { opacity: 0.5; filter: grayscale(1); }
+    .page-fade { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 
@@ -74,7 +77,7 @@
 <div class="glow-blob" style="top: -100px; left: -100px;"></div>
 <div class="glow-blob" style="bottom: -100px; right: -100px; animation-delay: -5s;"></div>
 
-<aside id="sidebar" class="w-80 glass rounded-[2.5rem] flex flex-col p-8 shadow-2xl relative">
+<aside id="sidebar" class="w-80 glass rounded-[2.5rem] flex flex-col p-8 shadow-2xl relative z-20">
   <button onclick="toggleSidebar()" class="absolute -right-3 top-10 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center border border-slate-100 hover:scale-110 transition-all z-50">
     <span id="toggle-icon" class="text-xs font-bold text-slate-400">⇠</span>
   </button>
@@ -121,14 +124,14 @@
   </div>
 
   <div id="history-section" class="flex-grow flex flex-col min-h-0">
-    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">History</h3>
+    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Archive</h3>
     <div id="historyList" class="flex-grow overflow-y-auto space-y-2 pr-2"></div>
   </div>
 </aside>
 
-<main class="flex-grow flex flex-col gap-4 overflow-hidden">
+<main class="flex-grow flex flex-col gap-4 overflow-hidden relative">
 
-  <div id="screen-upload" class="h-full flex flex-col items-center justify-center">
+  <div id="screen-upload" class="h-full flex flex-col items-center justify-center page-fade">
     <div class="glass p-16 rounded-[4rem] text-center max-w-xl shadow-2xl border-white/50">
       <h2 class="text-4xl font-black mb-4 tracking-tight">Level up your learning.</h2>
       <p class="text-slate-500 mb-10 text-lg">AI-powered Research Assistant is ready.</p>
@@ -139,7 +142,7 @@
     </div>
   </div>
 
-  <div id="screen-focus" class="max-w-3xl mx-auto hidden h-full flex flex-col items-center justify-center text-center space-y-10">
+  <div id="screen-focus" class="max-w-3xl mx-auto hidden h-full flex flex-col items-center justify-center text-center space-y-10 page-fade">
     <div class="glass p-16 rounded-[4rem] w-full shadow-2xl">
       <h2 class="text-7xl font-black tracking-tighter mb-4" id="focus-timer">25:00</h2>
       <p class="text-slate-400 font-bold uppercase tracking-widest text-xs">Deep Work Session</p>
@@ -150,17 +153,17 @@
     </div>
   </div>
 
-  <div id="screen-exam" class="max-w-4xl mx-auto hidden h-full flex flex-col items-center justify-center">
+  <div id="screen-exam" class="max-w-4xl mx-auto hidden h-full flex flex-col items-center justify-center page-fade">
     <div class="glass p-16 rounded-[4rem] text-center shadow-2xl border-red-100">
       <div class="text-6xl mb-6">⚔️</div>
       <h2 class="text-4xl font-black mb-4">Exam Simulator</h2>
-      <p class="text-slate-500 mb-10 text-lg">20 randomized questions. 15 minutes. Final score impacts your mastery.</p>
+      <p class="text-slate-500 mb-10 text-lg">15 rigorous questions. Focus on critical application of concepts.</p>
       <button onclick="startExam()" class="px-12 py-5 bg-red-500 text-white rounded-3xl font-black shadow-xl hover:bg-red-600 transition-all">Start Simulation</button>
     </div>
   </div>
 
   <div id="content-wrap" class="flex-grow overflow-y-auto hidden">
-    <div id="screen-summary" class="max-w-5xl mx-auto space-y-6 pb-10">
+    <div id="screen-summary" class="max-w-5xl mx-auto space-y-6 pb-10 page-fade">
       <div class="flex justify-between items-center glass p-8 rounded-[2.5rem] sticky top-0 z-10 shadow-sm">
         <h2 class="text-3xl font-black tracking-tight">Smart Summary</h2>
         <button onclick="prepareQuiz()" class="px-8 py-3 bg-indigo-600 text-white rounded-2xl font-bold">🧠 Master Quiz</button>
@@ -168,12 +171,12 @@
       <div id="summaryContent" class="glass p-12 rounded-[3.5rem] shadow-xl prose prose-indigo"></div>
     </div>
 
-    <div id="screen-roadmap" class="max-w-5xl mx-auto space-y-6 pb-10">
+    <div id="screen-roadmap" class="max-w-5xl mx-auto space-y-6 pb-10 page-fade">
       <h2 class="text-4xl font-black mb-8 px-4">Study Route</h2>
       <div id="roadmapContent" class="grid gap-6"></div>
     </div>
 
-    <div id="screen-quiz" class="max-w-3xl mx-auto h-full flex flex-col justify-center">
+    <div id="screen-quiz" class="max-w-3xl mx-auto h-full flex flex-col justify-center page-fade">
       <div id="quiz-setup" class="glass p-16 rounded-[4rem] text-center shadow-2xl">
         <h2 class="text-4xl font-black mb-8">Choose Length</h2>
         <div class="flex justify-center gap-6 mb-10">
@@ -194,7 +197,7 @@
       </div>
     </div>
 
-    <div id="screen-study" class="max-w-5xl mx-auto pb-10">
+    <div id="screen-study" class="max-w-5xl mx-auto pb-10 page-fade">
       <div id="studyContent"></div>
     </div>
   </div>
@@ -204,6 +207,7 @@
   let roadmapData = null, currentCourseId = null, completedTopics = new Set();
   let quizQuestions = [], currentQuestionIndex = 0, userAnswers = [], quizBonus = 0;
   let isSidebarCollapsed = false;
+  let focusInterval = null, secondsLeft = 25 * 60;
 
   window.onload = loadHistory;
 
@@ -229,7 +233,6 @@
     screens.forEach(s => document.getElementById('screen-'+s).classList.add('hidden'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('nav-btn-active'));
 
-    // Theme Switch
     if (id === 'focus') body.classList.add('focus-active');
     else body.classList.remove('focus-active');
 
@@ -243,10 +246,9 @@
     }
 
     const activeBtn = document.getElementById('btn-'+id) || document.getElementById('btn-upload');
-    activeBtn.classList.add('nav-btn-active');
+    if(activeBtn) activeBtn.classList.add('nav-btn-active');
   }
 
-  // --- REUSED CORE LOGIC ---
   async function loadHistory() {
     try {
       const res = await fetch('/api/courses');
@@ -268,10 +270,11 @@
     updateProgressBar();
     unlockNav(['summary', 'roadmap', 'focus', 'exam']);
     showScreen('summary');
+    setTimeout(() => { if (window.MathJax) MathJax.typesetPromise(); }, 150);
   }
 
   function renderRoadmap() {
-    document.getElementById('roadmapContent').innerHTML = roadmapData.map((lvl, i) => `
+    document.getElementById('roadmapContent').innerHTML = (roadmapData || []).map((lvl, i) => `
       <div class="glass p-10 rounded-[3rem] flex gap-8 bento-card">
         <div class="text-6xl font-black text-indigo-600/10">0${i+1}</div>
         <div class="w-full">
@@ -334,7 +337,61 @@
     } catch (e) { alert("Error"); }
   }
 
-  // --- QUIZ LOGIC (Simplified for flow) ---
+  // --- MODES LOGIC ---
+  function startFocus() {
+    const btn = document.querySelector('#screen-focus button');
+    if (focusInterval) {
+      clearInterval(focusInterval);
+      focusInterval = null;
+      btn.innerText = "Resume Session";
+      return;
+    }
+    btn.innerText = "Pause Session";
+    focusInterval = setInterval(() => {
+      secondsLeft--;
+      const m = Math.floor(secondsLeft / 60), s = secondsLeft % 60;
+      document.getElementById('focus-timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+      if (secondsLeft <= 0) {
+        clearInterval(focusInterval);
+        fetch(`/api/courses/${currentCourseId}/focus-session`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({minutes: 25}) });
+        alert("Time up!");
+      }
+    }, 1000);
+  }
+
+  async function startExam() {
+    showScreen('quiz');
+    const container = document.getElementById('quiz-setup');
+    container.innerHTML = `<div class="p-10 font-black text-indigo-600 animate-bounce">AI is generating exam paper...</div>`;
+    const res = await fetch('/api/generate-exam', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({courseId: currentCourseId}) });
+    const data = await res.json();
+    quizQuestions = data.questions; currentQuestionIndex = 0; userAnswers = new Array(quizQuestions.length).fill(null);
+    container.classList.add('hidden');
+    document.getElementById('quiz-container').classList.remove('hidden');
+    displayQuestion();
+  }
+
+  function displayQuestion() {
+    const q = quizQuestions[currentQuestionIndex];
+    document.getElementById('quiz-question').innerText = q.q;
+    document.getElementById('quiz-options').innerHTML = q.options.map((opt, i) => `<button onclick="selectOption(${i})" class="option-btn w-full text-left p-6 rounded-3xl border-2 border-slate-100 font-bold transition-all ${userAnswers[currentQuestionIndex] === i ? 'border-indigo-600 bg-indigo-50' : 'bg-white/50'}">${opt}</button>`).join('');
+    const nb = document.getElementById('next-btn');
+    nb.disabled = userAnswers[currentQuestionIndex] === null;
+    nb.style.opacity = nb.disabled ? "0.3" : "1";
+    nb.innerText = currentQuestionIndex === quizQuestions.length - 1 ? "Submit Exam" : "Next Segment";
+  }
+
+  function selectOption(i) { userAnswers[currentQuestionIndex] = i; displayQuestion(); }
+  function handleNext() { if(currentQuestionIndex < quizQuestions.length - 1) { currentQuestionIndex++; displayQuestion(); } else { finishQuiz(); } }
+  function finishQuiz() {
+    let score = 0; quizQuestions.forEach((q, i) => { if(userAnswers[i] === q.correct) score++; });
+    quizBonus = Math.round((score/quizQuestions.length) * 15);
+    updateProgressBar();
+    document.getElementById('quiz-container').classList.add('hidden');
+    document.getElementById('quiz-results').classList.remove('hidden');
+    document.getElementById('quiz-score-display').innerText = `Achievement: ${score} / ${quizQuestions.length}`;
+  }
+
   function prepareQuiz() { showScreen('quiz'); document.getElementById('quiz-setup').classList.remove('hidden'); document.getElementById('quiz-container').classList.add('hidden'); document.getElementById('quiz-results').classList.add('hidden'); }
   async function startQuiz(count) {
     document.getElementById('quiz-setup').classList.add('hidden');
@@ -344,29 +401,10 @@
     quizQuestions = data.questions; currentQuestionIndex = 0; userAnswers = new Array(quizQuestions.length).fill(null);
     displayQuestion();
   }
-  function displayQuestion() {
-    const q = quizQuestions[currentQuestionIndex];
-    document.getElementById('quiz-question').innerText = q.q;
-    document.getElementById('quiz-options').innerHTML = q.options.map((opt, i) => `<button onclick="selectOption(${i})" class="option-btn w-full text-left p-6 rounded-3xl border-2 border-slate-100 font-bold transition-all ${userAnswers[currentQuestionIndex] === i ? 'border-indigo-600 bg-indigo-50' : 'bg-white/50'}">${opt}</button>`).join('');
-    document.getElementById('next-btn').disabled = userAnswers[currentQuestionIndex] === null;
-    document.getElementById('next-btn').classList.toggle('opacity-30', userAnswers[currentQuestionIndex] === null);
-  }
-  function selectOption(i) { userAnswers[currentQuestionIndex] = i; displayQuestion(); }
-  function handleNext() { if(currentQuestionIndex < quizQuestions.length - 1) { currentQuestionIndex++; displayQuestion(); } else { finishQuiz(); } }
-  function finishQuiz() {
-    let score = 0; quizQuestions.forEach((q, i) => { if(userAnswers[i] === q.correct) score++; });
-    quizBonus = Math.round((score/quizQuestions.length) * 15);
-    updateProgressBar();
-    document.getElementById('quiz-container').classList.add('hidden');
-    document.getElementById('quiz-results').classList.remove('hidden');
-    document.getElementById('quiz-score-display').innerText = `Score: ${score} / ${quizQuestions.length}`;
-  }
 
   async function deleteCourse(event, id) { event.stopPropagation(); if(confirm("Delete?")) { await fetch(`/api/courses/${id}`, {method:'DELETE'}); if(currentCourseId === id) location.reload(); else loadHistory(); } }
   function unlockNav(ids) { ids.forEach(id => { const b = document.getElementById('btn-'+id); if(b) { b.disabled = false; b.classList.remove('opacity-30', 'cursor-not-allowed'); } }); }
-  function startFocus() { alert("Focus mode timer started."); }
-  function toggleAmbient() { alert("Lo-fi study beats activated."); }
-  function startExam() { alert("Exam mode simulation starting now."); }
+  function toggleAmbient() { alert("Ambient study waves activated."); }
 </script>
 </body>
 </html>
