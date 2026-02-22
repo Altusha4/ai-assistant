@@ -17,5 +17,15 @@
   "bugs": {
     "url": "https://github.com/Altusha4/ai-assistant/issues"
   },
-  "homepage": "https://github.com/Altusha4/ai-assistant#readme"
+  "homepage": "https://github.com/Altusha4/ai-assistant#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "mammoth": "^1.11.0",
+    "multer": "^2.0.2",
+    "openai": "^6.22.0",
+    "pdf-extraction": "^1.0.2",
+    "pdf-parse": "^2.4.5"
+  }
 }
