@@ -45,38 +45,55 @@
     .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
 
     mjx-container { background: #f1f5f9; padding: 0.5rem; border-radius: 8px; margin: 1rem 0; overflow-x: auto; }
+
+    /* История */
+    .history-item {
+      transition: all 0.2s;
+      border-left: 3px solid transparent;
+    }
+    .history-item:hover {
+      background-color: #f1f5f9;
+      border-left: 3px solid #4f46e5;
+    }
   </style>
 </head>
 
 <body class="flex h-screen overflow-hidden">
 
-<aside class="w-64 bg-white border-r border-slate-200 flex flex-col p-6">
+<aside class="w-72 bg-white border-r border-slate-200 flex flex-col p-6">
   <div class="flex items-center gap-3 mb-10">
     <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg">SF</div>
-    <span class="font-extrabold text-xl tracking-tighter">Study-Fit</span>
+    <span class="font-extrabold text-xl tracking-tighter text-slate-800">Study-Fit</span>
   </div>
 
-  <nav class="space-y-2 flex-grow">
-    <button onclick="showScreen('upload')" id="btn-upload" class="nav-btn w-full text-left px-4 py-3 rounded-xl font-bold text-sm text-slate-400 hover:bg-slate-50 nav-active">📥 Загрузка</button>
+  <nav class="space-y-2 mb-8">
+    <button onclick="showScreen('upload')" id="btn-upload" class="nav-btn w-full text-left px-4 py-3 rounded-xl font-bold text-sm text-slate-400 hover:bg-slate-50 nav-active text-indigo-600">📥 Новая загрузка</button>
     <button onclick="showScreen('summary')" id="btn-summary" class="nav-btn w-full text-left px-4 py-3 rounded-xl font-bold text-sm text-slate-400 opacity-30 cursor-not-allowed" disabled>📄 Конспект</button>
     <button onclick="showScreen('roadmap')" id="btn-roadmap" class="nav-btn w-full text-left px-4 py-3 rounded-xl font-bold text-sm text-slate-400 opacity-30 cursor-not-allowed" disabled>🗺️ Roadmap</button>
     <button onclick="showScreen('study')" id="btn-study" class="nav-btn w-full text-left px-4 py-3 rounded-xl font-bold text-sm text-slate-400 opacity-30 cursor-not-allowed" disabled>📚 База знаний</button>
   </nav>
 
-  <button onclick="location.reload()" class="text-xs text-slate-300 hover:text-red-500 transition-colors">Очистить сессию</button>
+  <div class="flex-grow flex flex-col min-h-0">
+    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">История из MongoDB</h3>
+    <div id="historyList" class="flex-grow overflow-y-auto space-y-1 pr-2">
+      <div class="text-xs text-slate-400 animate-pulse">Загрузка архива...</div>
+    </div>
+  </div>
+
+  <button onclick="location.reload()" class="mt-4 text-xs text-slate-300 hover:text-red-500 transition-colors">Обновить данные</button>
 </aside>
 
 <main class="flex-grow p-12 overflow-y-auto">
 
   <div id="screen-upload" class="max-w-2xl mx-auto text-center mt-20 page-fade">
     <h1 class="text-4xl font-black mb-4 text-slate-800">Интеллектуальный помощник</h1>
-    <p class="text-slate-500 mb-10">Загрузи материалы, и ИИ подготовит конспект и план обучения за один раз.</p>
+    <p class="text-slate-500 mb-10">Ваши лекции теперь сохраняются в облаке и доступны в любое время.</p>
     <div class="bg-white p-12 rounded-[3rem] shadow-xl border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all group">
       <input type="file" id="fileInput" class="hidden" onchange="handleFileUpload()">
       <label for="fileInput" class="cursor-pointer block">
         <div id="uploadIcon" class="text-6xl mb-4 group-hover:scale-110 transition-transform">📂</div>
         <span id="uploadStatus" class="font-bold text-slate-700 text-xl block">Нажми, чтобы выбрать файл</span>
-        <p class="text-slate-400 text-sm mt-2">PDF, DOCX или TXT до 15к символов</p>
+        <p class="text-slate-400 text-sm mt-2 text-indigo-500 font-medium">Ваш файл будет проанализирован и сохранен в базу</p>
       </label>
     </div>
   </div>
@@ -102,21 +119,62 @@
 <script>
   let roadmapData = null;
 
+  // Инициализация при загрузке
+  window.onload = loadHistory;
+
+  async function loadHistory() {
+    const list = document.getElementById('historyList');
+    try {
+      const res = await fetch('/api/courses');
+      const courses = await res.json();
+
+      if (courses.length === 0) {
+        list.innerHTML = `<div class="text-xs text-slate-400 italic">История пуста</div>`;
+        return;
+      }
+
+      list.innerHTML = courses.map(c => `
+        <div onclick='openSavedCourse(${JSON.stringify(c).replace(/'/g, "&apos;")})'
+             class="history-item p-3 rounded-xl text-sm font-medium text-slate-600 cursor-pointer truncate">
+          📚 ${c.filename}
+        </div>
+      `).join('');
+    } catch (e) {
+      list.innerHTML = `<div class="text-xs text-red-400">Не удалось загрузить историю</div>`;
+    }
+  }
+
+  function openSavedCourse(course) {
+    // Подгружаем данные из сохраненного объекта
+    roadmapData = course.roadmap;
+    document.getElementById('summaryContent').innerHTML = marked.parse(course.summary || "");
+
+    renderRoadmap();
+    unlockNav(['summary', 'roadmap']);
+    showScreen('summary');
+
+    if (window.MathJax) MathJax.typeset();
+  }
+
   function showScreen(screenId) {
     ['upload', 'summary', 'roadmap', 'study'].forEach(id => {
       document.getElementById('screen-' + id).classList.add('hidden');
-      document.getElementById('btn-' + id).classList.remove('nav-active', 'text-white');
+      const btn = document.getElementById('btn-' + id);
+      if (btn) btn.classList.remove('nav-active', 'text-white');
     });
 
     document.getElementById('screen-' + screenId).classList.remove('hidden');
-    document.getElementById('btn-' + screenId).classList.add('nav-active', 'text-white');
+    const activeBtn = document.getElementById('btn-' + screenId);
+    if (activeBtn) activeBtn.classList.add('nav-active', 'text-white');
   }
 
   function unlockNav(ids) {
     ids.forEach(id => {
       const btn = document.getElementById('btn-' + id);
-      btn.disabled = false;
-      btn.classList.remove('opacity-30', 'cursor-not-allowed');
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('opacity-30', 'cursor-not-allowed');
+      }
     });
   }
 
@@ -127,7 +185,7 @@
 
     if (!fileInput.files[0]) return;
 
-    status.innerHTML = `<span class="text-indigo-600">ИИ изучает материал...</span><br><span class="text-xs font-normal text-slate-400">Это может занять до 20 секунд для больших файлов</span>`;
+    status.innerHTML = `<span class="text-indigo-600">Сохраняем в MongoDB...</span>`;
     icon.classList.add('animate-bounce');
 
     const formData = new FormData();
@@ -143,24 +201,15 @@
 
       const data = await res.json();
 
-      // Обработка данных (поддержка разных структур JSON)
-      roadmapData = data.roadmap.levels || data.roadmap;
-      const summaryText = data.summary || "Конспект не удалось сгенерировать.";
-
-      document.getElementById('summaryContent').innerHTML = marked.parse(summaryText);
-
-      renderRoadmap();
-      unlockNav(['summary', 'roadmap']);
+      // Открываем загруженный курс
+      openSavedCourse(data);
+      // Обновляем список истории
+      loadHistory();
 
       status.innerText = "Нажми, чтобы выбрать файл";
       icon.classList.remove('animate-bounce');
 
-      showScreen('summary');
-
-      if (window.MathJax) MathJax.typeset();
-
     } catch (e) {
-      console.error("Upload Error:", e);
       alert("Ошибка: " + e.message);
       status.innerText = "Попробовать снова";
       icon.classList.remove('animate-bounce');
@@ -170,7 +219,7 @@
   function renderRoadmap() {
     const container = document.getElementById('roadmapContent');
     if (!roadmapData || !Array.isArray(roadmapData)) {
-      container.innerHTML = `<p class="text-slate-400">План обучения пуст или имеет неверный формат.</p>`;
+      container.innerHTML = `<p class="text-slate-400">План обучения пуст.</p>`;
       return;
     }
 
@@ -178,7 +227,7 @@
         <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex gap-8 page-fade">
           <div class="text-5xl font-black text-slate-100 select-none">0${i + 1}</div>
           <div class="w-full">
-            <h3 class="text-xl font-bold mb-2 text-slate-800">${lvl.title || 'Уровень ' + (i+1)}</h3>
+            <h3 class="text-xl font-bold mb-2 text-slate-800">${lvl.title || 'Раздел ' + (i+1)}</h3>
             <p class="text-slate-400 text-sm mb-6">${lvl.description || ''}</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               ${(lvl.topics || []).map(t => `
@@ -195,16 +244,12 @@
   async function fetchTopic(topic) {
     unlockNav(['study']);
     showScreen('study');
-
     const container = document.getElementById('studyContent');
     const loaderId = 'loader-' + Date.now();
-
-    const loadingHtml = `
-        <div id="${loaderId}" class="p-10 bg-white rounded-[2.5rem] border border-slate-100 animate-pulse flex items-center justify-between page-fade">
-          <span class="text-slate-400 font-bold italic">ИИ анализирует тему: ${topic}...</span>
+    const loadingHtml = `<div id="${loaderId}" class="p-10 bg-white rounded-[2.5rem] border border-slate-100 animate-pulse flex items-center justify-between">
+          <span class="text-slate-400 font-bold italic">Глубокий анализ темы: ${topic}...</span>
           <div class="w-6 h-6 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      `;
+        </div>`;
     container.insertAdjacentHTML('afterbegin', loadingHtml);
 
     try {
@@ -213,30 +258,17 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic })
       });
-
-      if (!res.ok) throw new Error("Не удалось получить разбор темы");
-
       const data = await res.json();
       document.getElementById(loaderId).remove();
-
-      const card = `
-          <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden page-fade">
-            <div class="bg-slate-900 px-10 py-6 text-white flex justify-between items-center">
-              <span class="font-bold">${topic}</span>
-              <span class="text-[10px] opacity-40 uppercase tracking-widest">SF AI Analysis</span>
-            </div>
-            <div class="p-10 prose prose-indigo max-w-none text-slate-700">
-              ${marked.parse(data.explanation)}
-            </div>
-          </div>
-        `;
+      const card = `<div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden page-fade">
+            <div class="bg-slate-900 px-10 py-6 text-white flex justify-between items-center"><span class="font-bold">${topic}</span></div>
+            <div class="p-10 prose prose-indigo max-w-none text-slate-700">${marked.parse(data.explanation)}</div>
+          </div>`;
       container.insertAdjacentHTML('afterbegin', card);
-
       if (window.MathJax) MathJax.typeset();
     } catch (e) {
-      alert("Ошибка: " + e.message);
-      const loader = document.getElementById(loaderId);
-      if (loader) loader.remove();
+      alert("Ошибка разбора темы");
+      if (document.getElementById(loaderId)) document.getElementById(loaderId).remove();
     }
   }
 </script>
