@@ -11,5 +11,4 @@ __pycache__/
 .env
 node_modules/
 uploads/
-.env
 .DS_Store
