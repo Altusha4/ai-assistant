@@ -8,7 +8,7 @@
 ai-study-assistant.iml
 venv/
 __pycache__/
-.env
+backend/.env
 node_modules/
 uploads/
 .DS_Store
