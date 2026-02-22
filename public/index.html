@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Study-Fit AI | Academic Platform</title>
+  <title>Study-Fit AI | Learning Tracker</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -13,48 +13,32 @@
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&family=JetBrains+Mono&display=swap');
 
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #F8FAFC;
-    }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F8FAFC; color: #1E293B; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+
+    .prose { max-width: 100% !important; }
+    .prose h2 { font-weight: 800; color: #4F46E5; border-bottom: 2px solid #EEF2FF; padding-bottom: 0.5rem; margin-top: 2rem; }
+    .prose h3 { font-weight: 700; color: #1E293B; margin-top: 1.5rem; }
+    .prose strong { color: #4F46E5; background: #F5F3FF; padding: 2px 4px; border-radius: 4px; }
+    .prose table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .prose th { background: #F1F5F9; padding: 0.75rem; text-align: left; font-size: 0.875rem; }
+    .prose td { padding: 0.75rem; border-bottom: 1px solid #F1F5F9; font-size: 0.875rem; }
+    .prose blockquote { border-left: 4px solid #4F46E5; background: #F8FAFC; padding: 1rem; border-radius: 0 12px 12px 0; font-style: italic; color: #475569; }
+
+    mjx-container { font-size: 1.1em !important; color: #4F46E5; padding: 10px 0; }
 
     .hidden { display: none; }
+    .nav-active { background-color: #4f46e5; color: white; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3); }
 
-    .nav-active {
-      background-color: #4f46e5;
-      color: white;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
-    }
+    .history-item { transition: all 0.2s; border-left: 3px solid transparent; }
+    .history-item:hover { background-color: #f1f5f9; border-left: 3px solid #4f46e5; }
 
-    .page-fade {
-      animation: fadeIn 0.3s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Стили для конспекта и разбора тем */
-    .prose h2 { font-size: 1.5rem; font-weight: 800; margin-top: 2rem; margin-bottom: 1rem; color: #1e293b; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; }
-    .prose h3 { font-size: 1.25rem; font-weight: 700; color: #4f46e5; margin-top: 1.5rem; }
-    .prose p { line-height: 1.8; margin-bottom: 1.25rem; color: #475569; }
-    .prose strong { color: #1e293b; font-weight: 700; }
-    .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
-
-    mjx-container { background: #f1f5f9; padding: 0.5rem; border-radius: 8px; margin: 1rem 0; overflow-x: auto; }
-
-    /* История */
-    .history-item {
-      transition: all 0.2s;
-      border-left: 3px solid transparent;
-    }
-    .history-item:hover {
-      background-color: #f1f5f9;
-      border-left: 3px solid #4f46e5;
-    }
+    .progress-transition { transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    .topic-checked { opacity: 0.6; background-color: #F1F5F9 !important; border-color: #E2E8F0 !important; }
   </style>
 </head>
 
@@ -67,50 +51,59 @@
   </div>
 
   <nav class="space-y-2 mb-8">
-    <button onclick="showScreen('upload')" id="btn-upload" class="nav-btn w-full text-left px-4 py-3 rounded-xl font-bold text-sm text-slate-400 hover:bg-slate-50 nav-active text-indigo-600">📥 Новая загрузка</button>
-    <button onclick="showScreen('summary')" id="btn-summary" class="nav-btn w-full text-left px-4 py-3 rounded-xl font-bold text-sm text-slate-400 opacity-30 cursor-not-allowed" disabled>📄 Конспект</button>
+    <button onclick="showScreen('upload')" id="btn-upload" class="nav-btn w-full text-left px-4 py-3 rounded-xl font-bold text-sm text-slate-400 hover:bg-slate-50 nav-active">📥 Upload New</button>
+    <button onclick="showScreen('summary')" id="btn-summary" class="nav-btn w-full text-left px-4 py-3 rounded-xl font-bold text-sm text-slate-400 opacity-30 cursor-not-allowed" disabled>📄 Summary</button>
     <button onclick="showScreen('roadmap')" id="btn-roadmap" class="nav-btn w-full text-left px-4 py-3 rounded-xl font-bold text-sm text-slate-400 opacity-30 cursor-not-allowed" disabled>🗺️ Roadmap</button>
-    <button onclick="showScreen('study')" id="btn-study" class="nav-btn w-full text-left px-4 py-3 rounded-xl font-bold text-sm text-slate-400 opacity-30 cursor-not-allowed" disabled>📚 База знаний</button>
   </nav>
 
-  <div class="flex-grow flex flex-col min-h-0">
-    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">История из MongoDB</h3>
-    <div id="historyList" class="flex-grow overflow-y-auto space-y-1 pr-2">
-      <div class="text-xs text-slate-400 animate-pulse">Загрузка архива...</div>
+  <div class="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+    <div class="flex justify-between text-[10px] font-black uppercase tracking-wider mb-2 text-slate-400">
+      <span>Course Progress</span>
+      <span id="progressPercent">0%</span>
+    </div>
+    <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+      <div id="progressBar" class="bg-indigo-600 h-full progress-transition" style="width: 0%"></div>
     </div>
   </div>
 
-  <button onclick="location.reload()" class="mt-4 text-xs text-slate-300 hover:text-red-500 transition-colors">Обновить данные</button>
+  <div class="flex-grow flex flex-col min-h-0">
+    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Archive</h3>
+    <div id="historyList" class="flex-grow overflow-y-auto space-y-1 pr-2 text-slate-600">
+      <div class="text-xs text-slate-400 animate-pulse">Loading archive...</div>
+    </div>
+  </div>
+
+  <button onclick="location.reload()" class="mt-4 text-xs text-slate-300 hover:text-indigo-500 transition-colors">Refresh App</button>
 </aside>
 
 <main class="flex-grow p-12 overflow-y-auto">
 
   <div id="screen-upload" class="max-w-2xl mx-auto text-center mt-20 page-fade">
-    <h1 class="text-4xl font-black mb-4 text-slate-800">Интеллектуальный помощник</h1>
-    <p class="text-slate-500 mb-10">Ваши лекции теперь сохраняются в облаке и доступны в любое время.</p>
-    <div class="bg-white p-12 rounded-[3rem] shadow-xl border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all group">
+    <h1 class="text-4xl font-black mb-4 text-slate-800">Study Assistant</h1>
+    <p class="text-slate-500 mb-10">Upload your lectures. AI will generate a summary and roadmap instantly.</p>
+    <div class="bg-white p-12 rounded-[3rem] shadow-xl border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all cursor-pointer" onclick="document.getElementById('fileInput').click()">
       <input type="file" id="fileInput" class="hidden" onchange="handleFileUpload()">
-      <label for="fileInput" class="cursor-pointer block">
-        <div id="uploadIcon" class="text-6xl mb-4 group-hover:scale-110 transition-transform">📂</div>
-        <span id="uploadStatus" class="font-bold text-slate-700 text-xl block">Нажми, чтобы выбрать файл</span>
-        <p class="text-slate-400 text-sm mt-2 text-indigo-500 font-medium">Ваш файл будет проанализирован и сохранен в базу</p>
-      </label>
+      <div class="text-6xl mb-4">📂</div>
+      <span id="uploadStatus" class="font-bold text-slate-700 text-xl block">Click to select file</span>
+      <p class="text-slate-400 text-sm mt-2 text-indigo-500 font-medium">Supports PDF, DOCX, and TXT</p>
     </div>
   </div>
 
   <div id="screen-summary" class="max-w-4xl mx-auto hidden page-fade">
-    <h2 class="text-3xl font-black mb-8 text-slate-800">Общий конспект курса</h2>
-    <div id="summaryContent" class="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100 prose prose-indigo max-w-none text-slate-700">
+    <div class="flex justify-between items-center mb-8">
+      <h2 class="text-3xl font-black text-slate-800">Academic Summary</h2>
+      <button onclick="window.print()" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 transition">Export PDF</button>
+    </div>
+    <div id="summaryContent" class="bg-white p-12 rounded-[3rem] shadow-2xl shadow-indigo-100/50 border border-slate-100 prose prose-indigo">
     </div>
   </div>
 
-  <div id="screen-roadmap" class="max-w-4xl mx-auto space-y-6 hidden page-fade">
-    <h2 class="text-3xl font-black mb-8 text-slate-800">Твой план обучения</h2>
+  <div id="screen-roadmap" class="max-w-4xl mx-auto hidden page-fade">
+    <h2 class="text-3xl font-black mb-8 text-slate-800">Learning Roadmap</h2>
     <div id="roadmapContent" class="space-y-6"></div>
   </div>
 
-  <div id="screen-study" class="max-w-4xl mx-auto space-y-8 hidden page-fade">
-    <h2 class="text-3xl font-black mb-8 text-slate-800">Детальный разбор тем</h2>
+  <div id="screen-study" class="max-w-4xl mx-auto hidden page-fade">
     <div id="studyContent" class="space-y-8"></div>
   </div>
 
@@ -118,8 +111,8 @@
 
 <script>
   let roadmapData = null;
+  let completedTopics = new Set();
 
-  // Инициализация при загрузке
   window.onload = loadHistory;
 
   async function loadHistory() {
@@ -127,33 +120,34 @@
     try {
       const res = await fetch('/api/courses');
       const courses = await res.json();
-
       if (courses.length === 0) {
-        list.innerHTML = `<div class="text-xs text-slate-400 italic">История пуста</div>`;
+        list.innerHTML = `<div class="text-xs text-slate-400 italic">History is empty</div>`;
         return;
       }
-
       list.innerHTML = courses.map(c => `
         <div onclick='openSavedCourse(${JSON.stringify(c).replace(/'/g, "&apos;")})'
-             class="history-item p-3 rounded-xl text-sm font-medium text-slate-600 cursor-pointer truncate">
+             class="history-item p-3 rounded-xl text-sm font-medium cursor-pointer truncate">
           📚 ${c.filename}
         </div>
       `).join('');
     } catch (e) {
-      list.innerHTML = `<div class="text-xs text-red-400">Не удалось загрузить историю</div>`;
+      list.innerHTML = `<div class="text-xs text-red-400">Failed to load archive</div>`;
     }
   }
 
   function openSavedCourse(course) {
-    // Подгружаем данные из сохраненного объекта
     roadmapData = course.roadmap;
-    document.getElementById('summaryContent').innerHTML = marked.parse(course.summary || "");
+    completedTopics.clear(); // Reset progress for the selected course
+    updateProgressBar();
 
+    document.getElementById('summaryContent').innerHTML = marked.parse(course.summary || "");
     renderRoadmap();
+
     unlockNav(['summary', 'roadmap']);
     showScreen('summary');
 
-    if (window.MathJax) MathJax.typeset();
+    // Fix Math rendering with slight delay for dynamic content
+    setTimeout(() => { if (window.MathJax) MathJax.typesetPromise(); }, 100);
   }
 
   function showScreen(screenId) {
@@ -162,7 +156,6 @@
       const btn = document.getElementById('btn-' + id);
       if (btn) btn.classList.remove('nav-active', 'text-white');
     });
-
     document.getElementById('screen-' + screenId).classList.remove('hidden');
     const activeBtn = document.getElementById('btn-' + screenId);
     if (activeBtn) activeBtn.classList.add('nav-active', 'text-white');
@@ -179,61 +172,41 @@
   }
 
   async function handleFileUpload() {
-    const fileInput = document.getElementById('fileInput');
     const status = document.getElementById('uploadStatus');
-    const icon = document.getElementById('uploadIcon');
-
+    const fileInput = document.getElementById('fileInput');
     if (!fileInput.files[0]) return;
 
-    status.innerHTML = `<span class="text-indigo-600">Сохраняем в MongoDB...</span>`;
-    icon.classList.add('animate-bounce');
-
+    status.innerHTML = `<span class="text-indigo-600">Analyzing...</span>`;
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
 
     try {
       const res = await fetch('/upload', { method: 'POST', body: formData });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Ошибка сервера");
-      }
-
       const data = await res.json();
-
-      // Открываем загруженный курс
       openSavedCourse(data);
-      // Обновляем список истории
       loadHistory();
-
-      status.innerText = "Нажми, чтобы выбрать файл";
-      icon.classList.remove('animate-bounce');
-
+      status.innerText = "Click to select file";
     } catch (e) {
-      alert("Ошибка: " + e.message);
-      status.innerText = "Попробовать снова";
-      icon.classList.remove('animate-bounce');
+      alert("Analysis failed");
+      status.innerText = "Try Again";
     }
   }
 
   function renderRoadmap() {
     const container = document.getElementById('roadmapContent');
-    if (!roadmapData || !Array.isArray(roadmapData)) {
-      container.innerHTML = `<p class="text-slate-400">План обучения пуст.</p>`;
-      return;
-    }
-
     container.innerHTML = roadmapData.map((lvl, i) => `
         <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex gap-8 page-fade">
           <div class="text-5xl font-black text-slate-100 select-none">0${i + 1}</div>
           <div class="w-full">
-            <h3 class="text-xl font-bold mb-2 text-slate-800">${lvl.title || 'Раздел ' + (i+1)}</h3>
-            <p class="text-slate-400 text-sm mb-6">${lvl.description || ''}</p>
+            <h3 class="text-xl font-bold mb-4 text-slate-800">${lvl.title || 'Section'}</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               ${(lvl.topics || []).map(t => `
-                <button onclick="fetchTopic('${t.replace(/'/g, "\\'")}')" class="p-4 bg-slate-50 rounded-2xl text-left hover:bg-indigo-50 hover:text-indigo-600 transition font-bold text-sm border border-transparent hover:border-indigo-100">
-                  ${t}
-                </button>
+                <div id="topic-card-${t}" class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-transparent transition-all">
+                  <input type="checkbox" onchange="toggleTopic('${t}')" class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                  <button onclick="fetchTopic('${t.replace(/'/g, "\\'")}')" class="text-left font-bold text-sm hover:text-indigo-600 flex-grow">
+                    ${t}
+                  </button>
+                </div>
               `).join('')}
             </div>
           </div>
@@ -241,16 +214,31 @@
       `).join('');
   }
 
+  function toggleTopic(topic) {
+    const card = document.getElementById(`topic-card-${topic}`);
+    if (completedTopics.has(topic)) {
+      completedTopics.delete(topic);
+      card.classList.remove('topic-checked');
+    } else {
+      completedTopics.add(topic);
+      card.classList.add('topic-checked');
+    }
+    updateProgressBar();
+  }
+
+  function updateProgressBar() {
+    const total = roadmapData ? roadmapData.reduce((acc, lvl) => acc + lvl.topics.length, 0) : 0;
+    const current = completedTopics.size;
+    const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+
+    document.getElementById('progressBar').style.width = percent + '%';
+    document.getElementById('progressPercent').innerText = percent + '%';
+  }
+
   async function fetchTopic(topic) {
-    unlockNav(['study']);
     showScreen('study');
     const container = document.getElementById('studyContent');
-    const loaderId = 'loader-' + Date.now();
-    const loadingHtml = `<div id="${loaderId}" class="p-10 bg-white rounded-[2.5rem] border border-slate-100 animate-pulse flex items-center justify-between">
-          <span class="text-slate-400 font-bold italic">Глубокий анализ темы: ${topic}...</span>
-          <div class="w-6 h-6 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>`;
-    container.insertAdjacentHTML('afterbegin', loadingHtml);
+    container.innerHTML = `<div class="p-10 bg-white rounded-3xl animate-pulse text-slate-400 font-bold italic">AI is analyzing: ${topic}...</div>`;
 
     try {
       const res = await fetch('/explain-topic', {
@@ -259,16 +247,15 @@
         body: JSON.stringify({ topic })
       });
       const data = await res.json();
-      document.getElementById(loaderId).remove();
-      const card = `<div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden page-fade">
-            <div class="bg-slate-900 px-10 py-6 text-white flex justify-between items-center"><span class="font-bold">${topic}</span></div>
+      container.innerHTML = `
+          <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden page-fade">
+            <div class="bg-slate-900 px-10 py-6 text-white font-bold">${topic}</div>
             <div class="p-10 prose prose-indigo max-w-none text-slate-700">${marked.parse(data.explanation)}</div>
           </div>`;
-      container.insertAdjacentHTML('afterbegin', card);
-      if (window.MathJax) MathJax.typeset();
+
+      if (window.MathJax) MathJax.typesetPromise();
     } catch (e) {
-      alert("Ошибка разбора темы");
-      if (document.getElementById(loaderId)) document.getElementById(loaderId).remove();
+      alert("Analysis error");
     }
   }
 </script>

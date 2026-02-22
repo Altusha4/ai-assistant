@@ -18,7 +18,7 @@ app.use(express.static('public'));
 const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 if (!mongoUri) {
-    console.error("❌ ОШИБКА: MONGO_URI не найден в .env файле!");
+    console.error("❌ ERROR: MONGO_URI not found in .env file!");
     process.exit(1);
 }
 
@@ -50,7 +50,7 @@ app.get('/api/courses', async (req, res) => {
 
 app.post('/upload', upload.single('file'), async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ error: "Файл не выбран" });
+        if (!req.file) return res.status(400).json({ error: "No file selected" });
 
         const filePath = req.file.path;
         const fileExt = path.extname(req.file.originalname).toLowerCase();
@@ -68,27 +68,54 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         }
 
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        if (!extractedText || extractedText.length < 20) throw new Error("Text not recognized");
 
-        if (!extractedText || extractedText.length < 20) throw new Error("Текст не распознан");
+        console.log("🤖 Generating academic study guide and roadmap...");
 
         const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
-                { role: "system", content: "You are an academic tutor. Output ONLY JSON: { \"roadmap\": { \"levels\": [] }, \"summary\": \"\" }" },
-                { role: "user", content: `Analyze: ${extractedText.substring(0, 12000)}` }
+                {
+                    role: "system",
+                    content: `You are an elite academic assistant. Output ONLY valid JSON.
+                    Structure: { 
+                        "roadmap": [
+                            { "title": "Section Title", "description": "Brief info", "topics": ["Topic 1", "Topic 2"] }
+                        ], 
+                        "summary": "detailed_markdown_text" 
+                    }
+                    
+                    Instructions for 'summary':
+                    1. Use ## for titles, tables for comparisons, and > for key takeaways.
+                    2. Use LaTeX for formulas: \\( E = mc^2 \\).`
+                },
+                {
+                    role: "user",
+                    content: `Analyze this material: ${extractedText.substring(0, 15000)}`
+                }
             ],
             response_format: { type: "json_object" }
         });
 
         const resultData = JSON.parse(response.choices[0].message.content);
-        const finalRoadmap = resultData.roadmap.levels || resultData.roadmap || [];
+
+        // --- FIXED ROADMAP PARSING ---
+        // Force extract the array even if AI nests it under .levels
+        let finalRoadmap = [];
+        if (Array.isArray(resultData.roadmap)) {
+            finalRoadmap = resultData.roadmap;
+        } else if (resultData.roadmap && Array.isArray(resultData.roadmap.levels)) {
+            finalRoadmap = resultData.roadmap.levels;
+        }
 
         const newCourse = new Course({
             filename: req.file.originalname,
-            summary: resultData.summary,
+            summary: resultData.summary || "Summary generation failed.",
             roadmap: finalRoadmap
         });
+
         await newCourse.save();
+        console.log(`✅ Saved to DB. Roadmap items: ${finalRoadmap.length}`);
 
         res.json(newCourse);
     } catch (error) {
@@ -102,7 +129,7 @@ app.post('/explain-topic', async (req, res) => {
         const { topic } = req.body;
         const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
-            messages: [{ role: "user", content: `Explain topic "${topic}" using Markdown.` }]
+            messages: [{ role: "user", content: `Explain topic "${topic}" using Markdown and professional tone.` }]
         });
         res.json({ explanation: response.choices[0].message.content });
     } catch (error) {
