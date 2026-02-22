@@ -18,7 +18,7 @@ app.use(express.static('public'));
 const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 if (!mongoUri) {
-    console.error("❌ ERROR: MONGO_URI not found in .env file!");
+    console.error("❌ ERROR: MONGO_URI not found!");
     process.exit(1);
 }
 
@@ -26,7 +26,6 @@ mongoose.connect(mongoUri)
     .then(() => console.log('✅ Connected to MongoDB Atlas'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-// --- Updated Schema with completedTopics ---
 const CourseSchema = new mongoose.Schema({
     filename: String,
     summary: String,
@@ -50,7 +49,15 @@ app.get('/api/courses', async (req, res) => {
     }
 });
 
-// --- New Route to Save Progress ---
+app.delete('/api/courses/:id', async (req, res) => {
+    try {
+        await Course.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: "Course deleted" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/courses/:id/toggle-topic', async (req, res) => {
     try {
         const { topic } = req.body;
@@ -91,7 +98,6 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         }
 
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        if (!extractedText || extractedText.length < 20) throw new Error("Text not recognized");
 
         const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
@@ -101,34 +107,27 @@ app.post('/upload', upload.single('file'), async (req, res) => {
                     content: `You are an elite academic assistant. Output ONLY valid JSON.
                     Structure: { 
                         "roadmap": [
-                            { "title": "Section Title", "description": "Info", "topics": ["Topic 1", "Topic 2"] }
+                            { "title": "Section Title", "topics": ["Topic 1", "Topic 2"] }
                         ], 
-                        "summary": "detailed_markdown_text" 
-                    }
-                    Instructions: Use tables for comparisons and LaTeX for formulas: \\( E = mc^2 \\).`
+                        "summary": "markdown_text" 
+                    }`
                 },
-                {
-                    role: "user",
-                    content: `Analyze this material: ${extractedText.substring(0, 15000)}`
-                }
+                { role: "user", content: `Analyze: ${extractedText.substring(0, 15000)}` }
             ],
             response_format: { type: "json_object" }
         });
 
         const resultData = JSON.parse(response.choices[0].message.content);
-        let finalRoadmap = Array.isArray(resultData.roadmap) ? resultData.roadmap : (resultData.roadmap.levels || []);
-
         const newCourse = new Course({
             filename: req.file.originalname,
             summary: resultData.summary,
-            roadmap: finalRoadmap,
+            roadmap: resultData.roadmap,
             completedTopics: []
         });
 
         await newCourse.save();
         res.json(newCourse);
     } catch (error) {
-        console.error("Server Error:", error);
         res.status(500).json({ error: error.message });
     }
 });
