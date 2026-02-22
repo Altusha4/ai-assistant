@@ -66,14 +66,14 @@
     </div>
   </div>
 
-  <div class="flex-grow flex flex-col min-h-0">
+  <div class="flex-grow flex flex-col min-h-0 text-slate-600">
     <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Archive</h3>
-    <div id="historyList" class="flex-grow overflow-y-auto space-y-1 pr-2 text-slate-600">
+    <div id="historyList" class="flex-grow overflow-y-auto space-y-1 pr-2">
       <div class="text-xs text-slate-400 animate-pulse">Loading archive...</div>
     </div>
   </div>
 
-  <button onclick="location.reload()" class="mt-4 text-xs text-slate-300 hover:text-indigo-500 transition-colors">Refresh App</button>
+  <button onclick="location.reload()" class="mt-4 text-xs text-slate-300 hover:text-indigo-500 transition-colors">Refresh Data</button>
 </aside>
 
 <main class="flex-grow p-12 overflow-y-auto">
@@ -111,6 +111,7 @@
 
 <script>
   let roadmapData = null;
+  let currentCourseId = null;
   let completedTopics = new Set();
 
   window.onload = loadHistory;
@@ -136,18 +137,21 @@
   }
 
   function openSavedCourse(course) {
+    currentCourseId = course._id;
     roadmapData = course.roadmap;
-    completedTopics.clear(); // Reset progress for the selected course
-    updateProgressBar();
 
+    // Restore the set of completed topics for this specific note
+    completedTopics = new Set(course.completedTopics || []);
+
+    updateProgressBar();
     document.getElementById('summaryContent').innerHTML = marked.parse(course.summary || "");
     renderRoadmap();
 
     unlockNav(['summary', 'roadmap']);
     showScreen('summary');
 
-    // Fix Math rendering with slight delay for dynamic content
-    setTimeout(() => { if (window.MathJax) MathJax.typesetPromise(); }, 100);
+    // Fix Math rendering for dynamically switched content
+    setTimeout(() => { if (window.MathJax) MathJax.typesetPromise(); }, 150);
   }
 
   function showScreen(screenId) {
@@ -176,7 +180,7 @@
     const fileInput = document.getElementById('fileInput');
     if (!fileInput.files[0]) return;
 
-    status.innerHTML = `<span class="text-indigo-600">Analyzing...</span>`;
+    status.innerHTML = `<span class="text-indigo-600 font-bold">Processing AI Analysis...</span>`;
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
 
@@ -187,7 +191,7 @@
       loadHistory();
       status.innerText = "Click to select file";
     } catch (e) {
-      alert("Analysis failed");
+      alert("Analysis failed. Please try a different file.");
       status.innerText = "Try Again";
     }
   }
@@ -200,22 +204,26 @@
           <div class="w-full">
             <h3 class="text-xl font-bold mb-4 text-slate-800">${lvl.title || 'Section'}</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              ${(lvl.topics || []).map(t => `
-                <div id="topic-card-${t}" class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-transparent transition-all">
-                  <input type="checkbox" onchange="toggleTopic('${t}')" class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+              ${(lvl.topics || []).map(t => {
+      const isChecked = completedTopics.has(t);
+      return `
+                <div id="topic-card-${t}" class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-transparent transition-all ${isChecked ? 'topic-checked' : ''}">
+                  <input type="checkbox" onchange="toggleTopic('${t}')" ${isChecked ? 'checked' : ''} class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
                   <button onclick="fetchTopic('${t.replace(/'/g, "\\'")}')" class="text-left font-bold text-sm hover:text-indigo-600 flex-grow">
                     ${t}
                   </button>
-                </div>
-              `).join('')}
+                </div>`;
+    }).join('')}
             </div>
           </div>
         </div>
       `).join('');
   }
 
-  function toggleTopic(topic) {
+  async function toggleTopic(topic) {
     const card = document.getElementById(`topic-card-${topic}`);
+
+    // UI Update
     if (completedTopics.has(topic)) {
       completedTopics.delete(topic);
       card.classList.remove('topic-checked');
@@ -224,6 +232,17 @@
       card.classList.add('topic-checked');
     }
     updateProgressBar();
+
+    // Database Sync
+    try {
+      await fetch(`/api/courses/${currentCourseId}/toggle-topic`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic })
+      });
+    } catch (e) {
+      console.error("Progress synchronization failed");
+    }
   }
 
   function updateProgressBar() {
@@ -238,7 +257,7 @@
   async function fetchTopic(topic) {
     showScreen('study');
     const container = document.getElementById('studyContent');
-    container.innerHTML = `<div class="p-10 bg-white rounded-3xl animate-pulse text-slate-400 font-bold italic">AI is analyzing: ${topic}...</div>`;
+    container.innerHTML = `<div class="p-10 bg-white rounded-3xl animate-pulse text-slate-400 font-bold italic text-center">AI is analyzing lecture context for: ${topic}...</div>`;
 
     try {
       const res = await fetch('/explain-topic', {
@@ -249,13 +268,16 @@
       const data = await res.json();
       container.innerHTML = `
           <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden page-fade">
-            <div class="bg-slate-900 px-10 py-6 text-white font-bold">${topic}</div>
+            <div class="bg-slate-900 px-10 py-6 text-white font-bold flex justify-between items-center">
+                <span>${topic}</span>
+                <span class="text-[10px] opacity-40 uppercase tracking-widest">Deep Dive Analysis</span>
+            </div>
             <div class="p-10 prose prose-indigo max-w-none text-slate-700">${marked.parse(data.explanation)}</div>
           </div>`;
 
       if (window.MathJax) MathJax.typesetPromise();
     } catch (e) {
-      alert("Analysis error");
+      alert("AI analysis error. Check server connectivity.");
     }
   }
 </script>

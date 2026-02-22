@@ -26,10 +26,12 @@ mongoose.connect(mongoUri)
     .then(() => console.log('✅ Connected to MongoDB Atlas'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
+// --- Updated Schema with completedTopics ---
 const CourseSchema = new mongoose.Schema({
     filename: String,
     summary: String,
     roadmap: Array,
+    completedTopics: { type: Array, default: [] },
     createdAt: { type: Date, default: Date.now }
 });
 const Course = mongoose.model('Course', CourseSchema);
@@ -43,6 +45,27 @@ app.get('/api/courses', async (req, res) => {
     try {
         const courses = await Course.find().sort({ createdAt: -1 });
         res.json(courses);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- New Route to Save Progress ---
+app.post('/api/courses/:id/toggle-topic', async (req, res) => {
+    try {
+        const { topic } = req.body;
+        const course = await Course.findById(req.params.id);
+        if (!course) return res.status(404).json({ error: "Course not found" });
+
+        const index = course.completedTopics.indexOf(topic);
+        if (index > -1) {
+            course.completedTopics.splice(index, 1);
+        } else {
+            course.completedTopics.push(topic);
+        }
+
+        await course.save();
+        res.json({ completedTopics: course.completedTopics });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -70,8 +93,6 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         if (!extractedText || extractedText.length < 20) throw new Error("Text not recognized");
 
-        console.log("🤖 Generating academic study guide and roadmap...");
-
         const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
@@ -80,14 +101,11 @@ app.post('/upload', upload.single('file'), async (req, res) => {
                     content: `You are an elite academic assistant. Output ONLY valid JSON.
                     Structure: { 
                         "roadmap": [
-                            { "title": "Section Title", "description": "Brief info", "topics": ["Topic 1", "Topic 2"] }
+                            { "title": "Section Title", "description": "Info", "topics": ["Topic 1", "Topic 2"] }
                         ], 
                         "summary": "detailed_markdown_text" 
                     }
-                    
-                    Instructions for 'summary':
-                    1. Use ## for titles, tables for comparisons, and > for key takeaways.
-                    2. Use LaTeX for formulas: \\( E = mc^2 \\).`
+                    Instructions: Use tables for comparisons and LaTeX for formulas: \\( E = mc^2 \\).`
                 },
                 {
                     role: "user",
@@ -98,25 +116,16 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         });
 
         const resultData = JSON.parse(response.choices[0].message.content);
-
-        // --- FIXED ROADMAP PARSING ---
-        // Force extract the array even if AI nests it under .levels
-        let finalRoadmap = [];
-        if (Array.isArray(resultData.roadmap)) {
-            finalRoadmap = resultData.roadmap;
-        } else if (resultData.roadmap && Array.isArray(resultData.roadmap.levels)) {
-            finalRoadmap = resultData.roadmap.levels;
-        }
+        let finalRoadmap = Array.isArray(resultData.roadmap) ? resultData.roadmap : (resultData.roadmap.levels || []);
 
         const newCourse = new Course({
             filename: req.file.originalname,
-            summary: resultData.summary || "Summary generation failed.",
-            roadmap: finalRoadmap
+            summary: resultData.summary,
+            roadmap: finalRoadmap,
+            completedTopics: []
         });
 
         await newCourse.save();
-        console.log(`✅ Saved to DB. Roadmap items: ${finalRoadmap.length}`);
-
         res.json(newCourse);
     } catch (error) {
         console.error("Server Error:", error);
@@ -129,7 +138,7 @@ app.post('/explain-topic', async (req, res) => {
         const { topic } = req.body;
         const response = await openai.chat.completions.create({
             model: "gpt-4o-mini",
-            messages: [{ role: "user", content: `Explain topic "${topic}" using Markdown and professional tone.` }]
+            messages: [{ role: "user", content: `Explain "${topic}" professionally with Markdown and LaTeX.` }]
         });
         res.json({ explanation: response.choices[0].message.content });
     } catch (error) {
@@ -146,6 +155,4 @@ app.use((req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 Server is running on http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server on http://localhost:${PORT}`));
